@@ -1,0 +1,53 @@
+name: Release
+
+# Tag a commit v1.0.0 and push the tag to cut a release. The version people see comes from
+# examples/Sanntid/lighttool.toml, not from the tag — keep the two in step.
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build and publish APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      # The SDK's libraries live in GitHub Packages under the lightphone org, which the default
+      # GITHUB_TOKEN cannot read. Same secrets as the inherited pr-check workflow.
+      - name: Build release APK
+        env:
+          GH_PACKAGES_USER: ${{ secrets.GH_CI_USER }}
+          GH_PACKAGES_TOKEN: ${{ secrets.GH_CI_TOKEN }}
+        run: ./gradlew :examples:Sanntid:assembleRelease --stacktrace
+
+      - name: Name the APK after the tag
+        run: |
+          cp examples/Sanntid/build/outputs/apk/release/Sanntid-release.apk \
+             "Sanntid-${GITHUB_REF_NAME}.apk"
+
+      # Signed with the SDK's shared dev key, which lives in the repo — sideloadable, but not
+      # the Light-signed build their tool library will eventually hand out.
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: Sanntid-*.apk
+          generate_release_notes: true
