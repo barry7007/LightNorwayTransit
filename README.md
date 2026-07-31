@@ -1,64 +1,128 @@
-# light-sdk
-or: a tool for building Tools
+# Sanntid
 
-## tl;dr
-This repository contains the scaffolding for building simple tools for the Light Phone III. Included are a library ([:sdk:client](./sdk/client)) and placeholder application ([:tool](./tool)) that depends on it. To create a tool that is fully compatible with LightOS, you must write your application code within the `tool` module, using the primitives provided by the sdk client library.
+**Departure times for public transport anywhere in Norway, on the Light Phone III.**
 
-You can and should use current Android best practices: Kotlin for all source code, Compose for UI, Coroutines for async programming, and MVVM architecture. **Although this is appears to be a fairly standard Android dev environment, you will quickly find out that we are (gently but broadly) restricting which Android APIs and third-party libraries can be used. This is in an effort to provide a secure and distinctly _light_ experience for our users. These restrictions are _not_ set in stone and should ease up over time. If there is a stable, open-source library that you'd like us to allow, please let us know! More on this later.**
+*Sanntid* is the word on the departure boards — "real time". The app opens straight onto the stop
+you used last, so checking the next tram is a glance rather than a task. Star the stops you use and
+they sit at the top of the chooser.
 
-## IMPORTANT!! July 1, 2026 Update
-If you're reading this, welcome! You're early! (in a cool way)
-This repo is a work-in-progress and will remain so for a while. Things are going to change _fast_ in the coming weeks. If you're going to start building right away, be sure to `git pull` frequently.
-Before you do, though, please be aware that **while we feel good about letting everybody start to explore and build, we are still working on the infrastructure to properly deploy your new tools.**
-The currently builds of LightOS in the wild are not yet ready to "play nice" with the tools built here. If you're someone who's already comfortable working with ADB to sideload APKs on your
-Light Phone III, you can totally do that with whatever you do here! But we're shooting to make these tools feel as seamless as the ones already available in LightOS, and that's going to take a bit more work. 
-We're hoping to have an update on that front later this month. In the meantime, the best way to start working is to use an Android emulator running our new [LightOS Emulator](sdk/emulator). The instructions for getting that up and running
-are [right here](docs/system_app).
+Built with the [Light SDK](https://github.com/lightphone/light-sdk) over
+[Entur's](https://developer.entur.org) national APIs, so it covers every stop in Norway — bus,
+tram, metro, train, coach and ferry — not just Oslo.
 
-## Quickstart
-### Grabbing a token
-We're currently hosting our library builds with GitHub Packages so each artifact can live beside its source. The tradeoff is that you'll need to add a GitHub token with package read access to your local build environment. **We are considering migrating to Maven Central to avoid this requirement when everything goes public.**
-For now, you can either add environment variables with your username and token:
+| Departures | Change stop | Near me |
+|---|---|---|
+| ![Departures](docs/screenshots/departures.png) | ![Change stop](docs/screenshots/change-stop.png) | ![Near me](docs/screenshots/near-me.png) |
+
+## What it does
+
+- **Opens on your last stop.** Departures is the home screen — no navigation to reach the thing you
+  opened the app for.
+- **Favourite stops.** The star on the departures bar adds or removes the stop you are looking at;
+  favourites appear first under **BYTT STED**.
+- **Nær meg** lists the nearest stops with distances so you can pick — see the caveat below.
+- **Search any stop in Norway**, with the place shown ("Torshov, Oslo" vs "Torshov, Hamar") so
+  same-named stops can be told apart.
+- **Realtime**: delays (`+3 min forsinket`), cancellations, and `⚠` for service messages.
+  Timetabled-only departures are prefixed `~`.
+- **Norwegian or English**, switchable in-app under **BYTT STED → INNSTILLINGER → Språk**.
+  Norwegian is the default. Stop and destination names come from Entur and stay Norwegian in both —
+  translating a place name helps nobody.
+
+## Install
+
+Grab the APK from [Releases](../../releases) and sideload it:
+
+```sh
+adb install -r Sanntid-release.apk
 ```
-GITHUB_ACTOR=your_username
-GITHUB_TOKEN=your_token
+
+It appears in the LightOS menu as **Sanntid**. If it does not show up straight away, restart the
+phone — the launcher builds its app list at boot.
+
+## Nær meg needs one adb command
+
+**LightOS does not currently grant location to a Light SDK tool at all**, so the nearby-stops
+feature needs the permission granted from outside the app, once:
+
+```sh
+adb shell pm grant com.thelightphone.sanntid android.permission.ACCESS_FINE_LOCATION
 ```
-or you can add them to your `local.properties` file:
+
+This survives app updates. **Everything except Nær meg works without it** — favourites, search and
+departures are unaffected.
+
+This is not a limitation of the app. The SDK's build-time policy explicitly permits both location
+permissions, but the runtime permission server's grantable set is camera and audio only, so its
+prompt refuses with `is not grantable by this server`. Its `GetPermission` call also reports
+`BlockedByServer` *even once the OS has genuinely granted the permission*, which is why the app asks
+the platform directly instead. If a future LightOS widens that set, Nær meg starts working with no
+change here.
+
+**Why there is no automatic fallback:** IP-based geolocation was measured and rejected. On both home
+broadband and Norwegian mobile data the providers returned an identical Oslo city centroid about
+2.8 km from the real position — six city-centre stops with confident-looking metre distances and no
+overlap with the actual nearest ones. A wrong answer that looks precise is worse than no answer, so
+when location is unavailable the app falls back to what it already does well: your favourites and
+search.
+
+## Building
+
+Requires **JDK 17** and a GitHub token with `read:packages`, since the SDK's libraries are hosted on
+GitHub Packages — see [the upstream SDK README](docs/LIGHT_SDK_README.md) for that setup.
+
+```sh
+./gradlew :examples:Sanntid:assembleDebug
 ```
-gpr.user=your_username
-gpr.key=your_token
+
+If your default JDK is newer than 17, point Gradle at a 17 install rather than committing a path:
+
+```sh
+./gradlew -Dorg.gradle.java.home=/path/to/jdk-17 :examples:Sanntid:assembleDebug
 ```
 
-### Running your Tool
-**You can test your tool on any Android device or emulator**, but certain functionality (receiving push notifications, requesting special permissions) can only be tested with:
-A) Real Light Phone hardware running LightOS
-B) An Android emulator (on your computer) set up to run our LightOS emulator app as a _system app_ ([see advanced instructions](docs/system_app))
+## If you fork this: change the Entur client name
 
-You can quickly [create an emulator](https://developer.android.com/studio/run/managing-avds) that generally feels like an LPIII by using the following settings:
-* 1080 X 1240, 3.92" display
-* Android API 34
-* NO Google Play Services installed
+Entur asks every API consumer to identify itself with an `ET-Client-Name` header of the form
+`<company>-<application>`, and **reserves the right to block unidentified consumers**. There is no
+registration and no API key — you just pick a name.
 
-### Start Building
-1. Fork and/or clone this repository into your local dev environment.
-2. Install Android Studio and open this project within it. (IntelliJ IDEA should also work)
+`CLIENT_NAME` in
+[`SanntidApi.kt`](examples/Sanntid/src/main/kotlin/com/thelightphone/sanntid/SanntidApi.kt) defaults
+to `lightnorwaytransit-sanntid`, which is shared by everyone running an unmodified build. All that
+traffic is rate-limited as a single consumer, so one heavy user can get every other user throttled —
+and a block would take the whole default identity with it. **Set your own before redistributing.**
 
-3. Edit the code in `HomeScreen` and `HomeScreenViewModel` to get started. `Homescreen` surfaces a `@Composable` method named `Content`. This is the UI that is shown when the tool first boots. You'll notice this UI sources data from it's `viewModel` field, which is an instance of `HomeScreenViewModel`. Edit that class with your screen's logic and expose the data to the UI using either Compose `State` or Coroutine `Flow`s. If you want to create a new screen, create a new Screen/ViewModel pair: your screen should extend from `LightScreen` and your VM from `LightScreenViewModel`. Your screen implementation will need:
-   1. A direct reference to your ViewModel's class type
-   2. A factory method for creating a new instance of your ViewModel.
+## Other countries
 
-Look at `HomeScreen` as an example for how this is done. To navigate to your new screen, use the `navigateTo` function built into `LightScreen` - just pass it a lambda to create an instance of your new screen. Note that the `LightScreen` constructor takes in a `SealedLightActivity`. The lambda is provided an instance of this as a default parameter.
+Norway only, because it is built on Entur. Every network call lives in one file,
+[`SanntidApi.kt`](examples/Sanntid/src/main/kotlin/com/thelightphone/sanntid/SanntidApi.kt), behind
+three functions — `searchStopPlaces`, `nearbyStopPlaces` and `fetchDepartures`. Replacing those with
+another country's API is the whole job; nothing else in the app knows where the data came from.
 
-Since LightOS does not use Android system navigation, we provide a back button for you. As long as you use `navigateTo` to move between screens, our back button should work great. If need be, you can override the `onBackPressed` method in your `LightViewModel`.
+PRs welcome if you do. There is deliberately no configurable "add your own transit API" setting:
+transit APIs differ far too much for a generic adapter to earn its indirection.
 
-### Sharing Your Tool
-**As of July 1, 2026, there's no "easy" way to share your tool with a Light Phone III user. We're working hard on that. This is how we believe it's going to look.**
+## Repository layout
 
-Given our relatively limited resources and desire to keep our users safe, we're requiring that all community tools be open source (including our own!). We will be building and signing these tools directly from a publicly available git commit, and we'll be archiving the source at build time. You're free to build and share privately, but LightOS won't let you install tools that are not signed by us without acknowledging privacy and performance risks. We won't block users from performing these "dangerous" sideloads, but we're not going to encourage it either. In the near future, you'll be able to queue up a build of your tool on our servers, and if it follows our guidelines and compiles cleanly, we will hand you back a signed, shareable APK.
+This is a fork of [`lightphone/light-sdk`](https://github.com/lightphone/light-sdk), which is how
+Light SDK tools are distributed — the app cannot be built outside the SDK tree. Two things differ
+from upstream:
 
-Once we release a version of LightOS that supports community tools, users will have an option to choose what kind of tools they want to be able to run on their device:
-- **Light-approved tools**: These include tools that are either built internally by the Light team, or built by the community and officially tested/signed-off by the Light team. We don't know _exactly_ what that sign-off process is going to look like, but as a heads-up: we're going to be looking pretty hard at whether a submitted tool matches the Light ethos both functionally and aesthetically. We've included a UX/UI library to make this as easy as possible! From a technical standpoint, these approved tools are both signed by us _and_ added to an "allow-list" within LightOS. Phones with this option selected will only install and display tools that meet both criteria.
-- **SDK-built tools**: This is a slightly more permissive choice. Phones with this option selected will install and launch any tool that was built and signed by Light. These don't require any manual approval by us (though we can block them in extreme cases). If a user wants to be able to install a tool that was shared locally or somewhere outside of Light's dashboard, but they still want to be confident that it will run well and integrate nicely with LightOS, they might choose this option!
-- **Any tools**: A user will have the option to make any APK launchable from LightOS, but they will own the responsibility of getting them un/installed. When a user selects this option, we will be warning them that they are potentially opening their device up to security risks, and in doing so will limit our ability to support them if something goes wrong.
+- **`examples/Sanntid/`** — the app.
+- **`sdk/client/src/main/kotlin/com/thelightphone/sdk/LightLocation.kt`** — a small addition giving
+  tools a way to read a position at all. `getSystemService()` is a blocked API in tool modules, so
+  this has to live in an SDK module. It is a standalone file extending `SealedLightContext`,
+  mirroring upstream's own `LightDb.kt`, so it adds no merge-conflict surface when tracking
+  upstream.
 
-## [Complete Documentation](./docs)
+Everything else is upstream, unmodified.
+
+## Credits and licence
+
+- Departure and stop data from [Entur](https://developer.entur.org), licensed
+  [NLOD](https://data.norge.no/nlod/en/2.0).
+- Built on the [Light SDK](https://github.com/lightphone/light-sdk) by The Light Phone.
+- MIT, matching upstream. See [LICENSE](LICENSE).
+
+Not affiliated with The Light Phone, Entur, or Ruter.
