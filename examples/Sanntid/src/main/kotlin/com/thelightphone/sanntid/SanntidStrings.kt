@@ -46,6 +46,7 @@ interface SanntidStrings {
     val nearMe: String
     val settingsHeading: String
     val language: String
+    val version: String
     val noDepartures: String
     val emptySearch: String
     val refresh: String
@@ -83,6 +84,7 @@ internal object NbStrings : SanntidStrings {
     override val nearMe = "Nær meg"
     override val settingsHeading = "INNSTILLINGER"
     override val language = "Språk"
+    override val version = "Versjon"
     override val noDepartures = "Ingen avganger nå."
     override val emptySearch = "Skriv inn et stoppested."
     override val refresh = "Oppdater"
@@ -133,6 +135,7 @@ internal object EnStrings : SanntidStrings {
     override val nearMe = "Near me"
     override val settingsHeading = "SETTINGS"
     override val language = "Language"
+    override val version = "Version"
     override val noDepartures = "No departures right now."
     override val emptySearch = "Enter a stop name."
     override val refresh = "Refresh"

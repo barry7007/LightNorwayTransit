@@ -293,6 +293,25 @@ private fun StopPickerContent(
                     modifier = Modifier.padding(horizontal = 0.75f.gridUnitsAsDp()),
                 )
             }
+            // Not interactive — it exists so a bug report can say which build it came from.
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 0.6f.gridUnitsAsDp()),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                LightText(
+                    text = strings.version,
+                    variant = LightTextVariant.Heading,
+                    modifier = Modifier.weight(1f),
+                )
+                LightText(
+                    text = BuildConfig.VERSION_NAME,
+                    variant = LightTextVariant.Detail,
+                    lighten = true,
+                    modifier = Modifier.padding(horizontal = 0.75f.gridUnitsAsDp()),
+                )
+            }
         }
     }
 }

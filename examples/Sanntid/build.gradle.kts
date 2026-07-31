@@ -17,6 +17,12 @@ android {
         manifestPlaceholders["sdkVersion"] = property("sdkVersion") as String
     }
 
+    // So the app can show its own version. versionName is set by the Light plugin from
+    // lighttool.toml, which stays the single place a release number is written.
+    buildFeatures {
+        buildConfig = true
+    }
+
     signingConfigs {
         create("lightsdkDev") {
             storeFile = file("../../sdk/keys/lightsdk-dev.jks")
