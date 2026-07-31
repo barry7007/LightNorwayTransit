@@ -31,7 +31,7 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "light-sdk"
+rootProject.name = "LightNorwayTransit"
 
 includeBuild("plugin")
 include(":lint-rules")
@@ -49,3 +49,8 @@ include(":examples:authenticator")
 project(":examples:authenticator").projectDir = file("examples/authenticator")
 include(":examples:audio-demo")
 project(":examples:audio-demo").projectDir = file("examples/audio-demo")
+
+// The app this repo exists for. Kept under examples/ so it sits where the SDK expects a tool
+// and stays trivially mergeable with upstream, which never touches this path.
+include(":examples:Sanntid")
+project(":examples:Sanntid").projectDir = file("examples/Sanntid")
