@@ -4,7 +4,7 @@ Departure times for public transport anywhere in Norway, on the Light Phone III.
 
 Opens straight onto the stop you used last. Built with the
 [Light SDK](https://github.com/lightphone/light-sdk) over [Entur's](https://developer.entur.org)
-national APIs — bus, tram, metro, train, coach and ferry, countrywide.
+national APIs. It covers bus, tram, metro, train, coach and ferry, countrywide.
 
 | Departures | Change stop | Near me |
 |---|---|---|
@@ -12,9 +12,9 @@ national APIs — bus, tram, metro, train, coach and ferry, countrywide.
 
 ## Features
 
-- Departures is the home screen — no navigation to reach what you opened the app for
+- Departures is the home screen, so there is no navigation to reach what you opened the app for
 - Favourite stops, starred from the departures bar
-- **Nær meg** — nearest stops with distances (see below)
+- **Nær meg**: nearest stops with distances (see below)
 - Search any stop in Norway, disambiguated by place ("Torshov, Oslo" vs "Torshov, Hamar")
 - Realtime: delays, cancellations, `⚠` for service messages, `~` for timetabled-only
 - Norwegian or English, switchable in-app. Stop names come from Entur and stay Norwegian in both.
@@ -40,8 +40,8 @@ adb shell pm grant com.thelightphone.sanntid android.permission.ACCESS_FINE_LOCA
 This survives app updates. Everything else works without it.
 
 The SDK's build-time policy permits location, but the runtime permission server's grantable set is
-camera and audio only — its prompt refuses, and `GetPermission` reports `BlockedByServer` even once
-the OS has granted the permission, so the app asks the platform directly. If LightOS widens that
+camera and audio only, so its prompt refuses. `GetPermission` also reports `BlockedByServer` even
+once the OS has granted the permission, so the app asks the platform directly. If LightOS widens that
 set, Nær meg starts working with no change here.
 
 There's no IP-geolocation fallback: measured on both broadband and mobile, the providers return the
@@ -50,7 +50,7 @@ search are the fallback instead.
 
 ## Building
 
-Needs JDK 17 and a GitHub token with `read:packages` — see
+Needs JDK 17 and a GitHub token with `read:packages`. See
 [the SDK README](docs/LIGHT_SDK_README.md).
 
 ```sh
@@ -74,8 +74,8 @@ welcome; there's deliberately no configurable API setting.
 A fork of [`lightphone/light-sdk`](https://github.com/lightphone/light-sdk), which is how SDK tools
 are distributed. Two additions:
 
-- `examples/Sanntid/` — the app
-- `sdk/client/.../LightLocation.kt` — lets tools read a position at all, since `getSystemService()`
+- `examples/Sanntid/`: the app
+- `sdk/client/.../LightLocation.kt`: lets tools read a position at all, since `getSystemService()`
   is blocked in tool modules. A standalone file extending `SealedLightContext`, mirroring upstream's
   `LightDb.kt`, so it adds no merge conflicts.
 
