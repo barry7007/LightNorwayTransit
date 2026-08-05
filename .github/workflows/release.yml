@@ -31,12 +31,9 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      # The SDK's libraries live in GitHub Packages under the lightphone org, which the default
-      # GITHUB_TOKEN cannot read. Same secrets as the inherited pr-check workflow.
+      # No credentials needed: upstream moved the keyboard library from GitHub Packages to
+      # JitPack (PR #144), which is what the GH_CI_USER/GH_CI_TOKEN secrets existed for.
       - name: Build release APK
-        env:
-          GH_PACKAGES_USER: ${{ secrets.GH_CI_USER }}
-          GH_PACKAGES_TOKEN: ${{ secrets.GH_CI_TOKEN }}
         run: ./gradlew :examples:Sanntid:assembleRelease --stacktrace
 
       - name: Name the APK after the tag

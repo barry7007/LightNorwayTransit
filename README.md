@@ -50,8 +50,7 @@ search are the fallback instead.
 
 ## Building
 
-Needs JDK 17 and a GitHub token with `read:packages`. See
-[the SDK README](docs/LIGHT_SDK_README.md).
+Needs JDK 17. See [the SDK README](docs/LIGHT_SDK_README.md).
 
 ```sh
 ./gradlew :examples:Sanntid:assembleDebug
