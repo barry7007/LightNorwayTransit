@@ -61,6 +61,13 @@ kotlin {
 }
 
 dependencies {
-    implementation(project(":sdk:client"))
+    // Sanntid never scans a QR code, but :sdk:ui's LightQrCodeScanner drags in ML Kit's
+    // barcode model (libbarhopper_v3.so, ~19MB across four ABIs on an arm64-only phone).
+    // Excluding it is sanctioned by Light — see light-sdk discussion #177 — until they
+    // move dependency declaration into lighttool.toml.
+    implementation(project(":sdk:client")) {
+        exclude(group = "com.google.mlkit")
+        exclude(group = "com.google.android.gms", module = "play-services-mlkit-barcode-scanning")
+    }
     testImplementation(libs.kotlin.test)
 }
