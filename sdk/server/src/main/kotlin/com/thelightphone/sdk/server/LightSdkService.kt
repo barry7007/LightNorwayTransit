@@ -42,7 +42,7 @@ class LightSdkService : Service() {
                 Intent(LightConstants.ACTION_SDK_MARKER).setPackage(packageName),
                 PackageManager.GET_META_DATA
             ).isNotEmpty()
-            hasMarker && LightSdkServer.isPackageAllowed(clientFilterLevel, packageName)
+            hasMarker && LightSdkServer.isPackageAllowed(clientFilterLevel, this, packageName)
         }
     }
 
@@ -225,6 +225,21 @@ class LightSdkService : Service() {
                 LightSdkServer.onDeviceKeyEvent(callingUid, request)
                 LightResult.Success(
                     LightServiceMethod.DeviceKeyEvent.encodeResponse(Unit)
+                )
+            }
+
+            LightServiceMethod.OpenDialer -> {
+                val request = LightServiceMethod.OpenDialer.decodeRequest(payload!!)
+                val phoneNumber = request.phoneNumber.trim()
+                if (phoneNumber.isEmpty()) {
+                    return@runCatching LightResult.Error(
+                        LightResult.ErrorCode.InvalidParameters,
+                        "missing phoneNumber",
+                    )
+                }
+                LightSdkServer.onOpenDialer(callingUid, phoneNumber)
+                LightResult.Success(
+                    LightServiceMethod.OpenDialer.encodeResponse(Unit)
                 )
             }
 
