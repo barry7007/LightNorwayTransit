@@ -32,6 +32,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.thelightphone.lp3Keyboard.ui.*
+import com.thelightphone.lp3Keyboard.ui.layout.LayoutRegistryItem
+import com.thelightphone.lp3Keyboard.ui.layout.buildRootViewModel
+import com.thelightphone.lp3Keyboard.ui.viewmodel.EnBaseViewModel
 import com.thelightphone.lp3Keyboard.ui.viewmodel.EnQwertyLp3KeyboardViewModel
 import com.thelightphone.lp3Keyboard.ui.viewmodel.Lp3KeyboardViewModel
 import com.thelightphone.lp3Keyboard.ui.viewmodel.Lp3RepeatableKeyboardCallback
@@ -43,6 +46,13 @@ import kotlinx.coroutines.flow.StateFlow
 
 private const val INPUT_UNDERLINE_THICKNESS_PX = 3f
 private const val INPUT_UNDERLINE_GAP_GRID_UNITS = 0.5f
+
+// Local change (not upstream): a Norwegian layout (æ ø å) exists only in the light-keyboard fork
+// that settings.gradle.kts substitutes in when it is checked out next to this repo. Looked up by
+// NAME rather than referenced, so a build against Light's published keyboard (CI, releases, a
+// bare clone) still compiles, finds nothing, and behaves exactly as upstream: English, no toggle.
+private val NORWEGIAN_LAYOUT: LayoutRegistryItem? =
+    LayoutRegistryItem.entries.firstOrNull { it.name == "NoQwerty" }
 
 @Composable
 fun LightTextInputEditor(
@@ -74,9 +84,16 @@ fun LightTextInputEditor(
         )
     }
 
-    val keyboardViewModel: Lp3KeyboardViewModel<*> = viewModel<EnQwertyLp3KeyboardViewModel<*>>(
-        key = "LightTextInputEditor-$editorKey",
-        factory = factory(keyboardCallback, keyboardOptionsFlow, initialCaps),
+    // The layout id is part of the view-model key, so flipping the preference swaps the keyboard
+    // under the caret; the text lives in `state` and is untouched.
+    val layoutItem = when (currentKeyboardLayout()) {
+        LightKeyboardLayout.NORWEGIAN -> NORWEGIAN_LAYOUT ?: LayoutRegistryItem.EnQwerty
+        LightKeyboardLayout.ENGLISH -> LayoutRegistryItem.EnQwerty
+    }
+
+    val keyboardViewModel: Lp3KeyboardViewModel<*> = viewModel<EnBaseViewModel<*>>(
+        key = "LightTextInputEditor-$editorKey-${layoutItem.uniqueId}",
+        factory = factory(layoutItem, keyboardCallback, keyboardOptionsFlow, initialCaps),
     )
 
     LightTextInputEditor(
@@ -90,6 +107,7 @@ fun LightTextInputEditor(
         submitIcon,
         showBackButton,
         singleLine,
+        showLayoutToggle = NORWEGIAN_LAYOUT != null,
     )
 }
 
@@ -112,10 +130,14 @@ fun LightTextInputEditor(
     submitIcon: LightIconConfiguration? = null,
     showBackButton: Boolean = true,
     singleLine: Boolean = false,
+    /** Local change: show a NO/EN keyboard-language button. Only meaningful when a Norwegian
+     *  layout exists, so the keyboard-picking overload above passes it only in that case. */
+    showLayoutToggle: Boolean = false,
 ) {
     val colors = LightThemeTokens.colors
     val inputStyle = lightInputTextStyle()
     var textLayout by remember { mutableStateOf<TextLayoutResult?>(null) }
+    val layoutToggle = rememberKeyboardLayoutToggle()
 
     Surface {
         Column(modifier = modifier.fillMaxSize()) {
@@ -198,20 +220,30 @@ fun LightTextInputEditor(
                 viewModel = viewModel,
                 additionalBottomHeight = 5f.gridUnitsAsDp(),
                 bottomBar = {
+                    val submitButton = when (submitIcon) {
+                        null -> LightBarButton.Text(
+                            text = submitLabel,
+                            onClick = { onSubmit(state.text) },
+                        )
+                        else -> LightBarButton.LightIcon(
+                            icon = submitIcon,
+                            onClick = { onSubmit(state.text) },
+                            contentDescription = submitLabel,
+                        )
+                    }
                     LightBottomBar(
-                        items = listOf(
-                            when (submitIcon) {
-                                null -> LightBarButton.Text(
-                                    text = submitLabel,
-                                    onClick = { onSubmit(state.text) },
-                                )
-                                else -> LightBarButton.LightIcon(
-                                    icon = submitIcon,
-                                    onClick = { onSubmit(state.text) },
-                                    contentDescription = submitLabel,
-                                )
-                            },
-                        ),
+                        items = if (showLayoutToggle) {
+                            // Local change: keyboard language in the centre and submit on the
+                            // right, the same arrangement as the Messages composer. The label
+                            // shows the CURRENT layout.
+                            listOf(
+                                null,
+                                LightBarButton.Text(text = layoutToggle.label, onClick = layoutToggle.toggle),
+                                submitButton,
+                            )
+                        } else {
+                            listOf(submitButton)
+                        },
                     )
                 }
             )
@@ -220,6 +252,7 @@ fun LightTextInputEditor(
 }
 
 private fun factory(
+    layout: LayoutRegistryItem,
     callback: Lp3RepeatableKeyboardCallback,
     keyboardOptionsFlow: StateFlow<KeyboardOptions>,
     initialCaps: Boolean,
@@ -227,14 +260,30 @@ private fun factory(
     object : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
-            return EnQwertyLp3KeyboardViewModel<Unit>(
-                callback,
-                keyboardOptionsFlow = keyboardOptionsFlow,
-                optionsForLayout = {
-                    val showCloseButton = !it.isRootLayout
-                    LayoutOptions(showCloseButton)
-                },
-            ).apply {
+            val vm = if (layout == LayoutRegistryItem.EnQwerty) {
+                EnQwertyLp3KeyboardViewModel<Unit>(
+                    callback,
+                    keyboardOptionsFlow = keyboardOptionsFlow,
+                    optionsForLayout = {
+                        val showCloseButton = !it.isRootLayout
+                        LayoutOptions(showCloseButton)
+                    },
+                )
+            } else {
+                // Local change: the Norwegian layout, built through the registry because it cannot
+                // be named in code (see NORWEGIAN_LAYOUT). The registry takes no keyboardOptionsFlow,
+                // so it uses the keyboard's defaults. The embedded keyboard has no swipe typing,
+                // so the swipe callback is a no-op.
+                layout.buildRootViewModel(
+                    passedCallback = callback,
+                    swipeCallback = object : Lp3KeyboardSwipeCallback<Unit> {},
+                    optionsForLayout = {
+                        val showCloseButton = !it.isRootLayout
+                        LayoutOptions(showCloseButton)
+                    },
+                )
+            }
+            return vm.apply {
                 if (initialCaps) setCapsMode(true)
             } as T
         }
