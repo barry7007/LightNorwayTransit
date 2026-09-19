@@ -12,6 +12,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
+import com.thelightphone.lp3Keyboard.ui.layout.LayoutRegistryItem
 
 /**
  * Which built-in embedded keyboard [LightTextInputEditor] shows.
@@ -123,6 +124,23 @@ fun rememberKeyboardLayoutToggle(): KeyboardLayoutToggle {
     return KeyboardLayoutToggle(layout) {
         LightKeyboardLayoutPreference.toggle(context)
     }
+}
+
+/**
+ * The NO/EN button for a bottom bar, or `null` when this build has no Norwegian layout to
+ * switch to (the fork isn't substituted in, so there is nothing to toggle).
+ *
+ * Lives here rather than inside [LightTextInputEditor] so the editor stays upstream's: the
+ * bar's outer slots are the caller's to fill, and a tool opts in by passing this as
+ * `leftBottomBarItem`. Looked up by NAME for the same reason as in the editor — a build
+ * against Light's published keyboard still compiles and simply gets `null`.
+ */
+@Composable
+fun rememberKeyboardLayoutToggleItem(): LightBottomBarItem? {
+    val available = remember { LayoutRegistryItem.entries.any { it.name == "NoQwerty" } }
+    if (!available) return null
+    val setting = rememberKeyboardLayoutToggle()
+    return LightBarButton.Text(text = setting.label, onClick = setting.toggle)
 }
 
 /**

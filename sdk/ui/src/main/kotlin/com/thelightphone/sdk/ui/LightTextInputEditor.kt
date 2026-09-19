@@ -64,6 +64,8 @@ fun LightTextInputEditor(
     modifier: Modifier = Modifier,
     submitLabel: String = "SUBMIT",
     submitIcon: LightIconConfiguration? = null,
+    leftBottomBarItem: LightBottomBarItem? = null,
+    rightBottomBarItem: LightBottomBarItem? = null,
     showBackButton: Boolean = true,
     singleLine: Boolean = false,
     initialCaps: Boolean = false,
@@ -105,9 +107,10 @@ fun LightTextInputEditor(
         modifier,
         submitLabel,
         submitIcon,
+        leftBottomBarItem,
+        rightBottomBarItem,
         showBackButton,
         singleLine,
-        showLayoutToggle = NORWEGIAN_LAYOUT != null,
     )
 }
 
@@ -128,16 +131,14 @@ fun LightTextInputEditor(
     modifier: Modifier = Modifier,
     submitLabel: String = "SUBMIT",
     submitIcon: LightIconConfiguration? = null,
+    leftBottomBarItem: LightBottomBarItem? = null,
+    rightBottomBarItem: LightBottomBarItem? = null,
     showBackButton: Boolean = true,
     singleLine: Boolean = false,
-    /** Local change: show a NO/EN keyboard-language button. Only meaningful when a Norwegian
-     *  layout exists, so the keyboard-picking overload above passes it only in that case. */
-    showLayoutToggle: Boolean = false,
 ) {
     val colors = LightThemeTokens.colors
     val inputStyle = lightInputTextStyle()
     var textLayout by remember { mutableStateOf<TextLayoutResult?>(null) }
-    val layoutToggle = rememberKeyboardLayoutToggle()
 
     Surface {
         Column(modifier = modifier.fillMaxSize()) {
@@ -220,7 +221,7 @@ fun LightTextInputEditor(
                 viewModel = viewModel,
                 additionalBottomHeight = 5f.gridUnitsAsDp(),
                 bottomBar = {
-                    val submitButton = when (submitIcon) {
+                    val submitItem: LightBottomBarItem = when (submitIcon) {
                         null -> LightBarButton.Text(
                             text = submitLabel,
                             onClick = { onSubmit(state.text) },
@@ -232,17 +233,10 @@ fun LightTextInputEditor(
                         )
                     }
                     LightBottomBar(
-                        items = if (showLayoutToggle) {
-                            // Local change: keyboard language in the centre and submit on the
-                            // right, the same arrangement as the Messages composer. The label
-                            // shows the CURRENT layout.
-                            listOf(
-                                null,
-                                LightBarButton.Text(text = layoutToggle.label, onClick = layoutToggle.toggle),
-                                submitButton,
-                            )
+                        items = if (leftBottomBarItem == null && rightBottomBarItem == null) {
+                            listOf(submitItem)
                         } else {
-                            listOf(submitButton)
+                            listOf(leftBottomBarItem, submitItem, rightBottomBarItem)
                         },
                     )
                 }

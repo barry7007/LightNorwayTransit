@@ -38,6 +38,7 @@ import com.thelightphone.sdk.ui.LightTopBar
 import com.thelightphone.sdk.ui.LightTopBarCenter
 import com.thelightphone.sdk.ui.gridUnitsAsDp
 import com.thelightphone.sdk.ui.lightClickable
+import com.thelightphone.sdk.ui.rememberKeyboardLayoutToggleItem
 
 @InitialScreen
 class SanntidHomeScreen(sealedActivity: SealedLightActivity) :
@@ -75,6 +76,7 @@ class SanntidHomeScreen(sealedActivity: SealedLightActivity) :
                             onSubmit = viewModel::submitSearch,
                             onBack = viewModel::cancelSearch,
                             submitIcon = LightIcons.SEARCH,
+                            leftBottomBarItem = rememberKeyboardLayoutToggleItem(),
                             showBackButton = state.canCancelSearch,
                             modifier = Modifier.fillMaxSize(),
                         )
