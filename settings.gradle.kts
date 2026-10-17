@@ -24,22 +24,25 @@ include(":lint-rules")
 include(":sdk:shared")
 include(":sdk:ui")
 include(":sdk:client")
-include(":sdk:server")
-include(":sdk:emulator")
 include(":tool")
-include(":examples:ui-demo")
-project(":examples:ui-demo").projectDir = file("examples/ui-demo")
-include(":examples:weather")
-project(":examples:weather").projectDir = file("examples/weather")
-include(":examples:authenticator")
-project(":examples:authenticator").projectDir = file("examples/authenticator")
-include(":examples:audio-demo")
-project(":examples:audio-demo").projectDir = file("examples/audio-demo")
 
-// The app this repo exists for. Kept under examples/ so it sits where the SDK expects a tool
-// and stays trivially mergeable with upstream, which never touches this path.
-include(":examples:Sanntid")
-project(":examples:Sanntid").projectDir = file("examples/Sanntid")
+// The tool builder passes -DlightSdk.toolOnly=true to configure only what
+// :tool needs.
+if (providers.systemProperty("lightSdk.toolOnly").orNull != "true") {
+    include(":sdk:trust")
+    include(":sdk:server")
+    include(":sdk:emulator")
+    include(":examples:ui-demo")
+    project(":examples:ui-demo").projectDir = file("examples/ui-demo")
+    include(":examples:tool-manager-demo")
+    project(":examples:tool-manager-demo").projectDir = file("examples/tool-manager-demo")
+    include(":examples:weather")
+    project(":examples:weather").projectDir = file("examples/weather")
+    include(":examples:authenticator")
+    project(":examples:authenticator").projectDir = file("examples/authenticator")
+    include(":examples:audio-demo")
+    project(":examples:audio-demo").projectDir = file("examples/audio-demo")
+}
 
 // Local-only: build the Norwegian light-keyboard fork in-place and substitute it for the
 // published artifact, exactly as light-sdk's own settings.gradle.kts does. Guarded on the

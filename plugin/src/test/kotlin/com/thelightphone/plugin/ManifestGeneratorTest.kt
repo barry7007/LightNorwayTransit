@@ -26,6 +26,18 @@ class ManifestGeneratorTest {
     )
 
     @Test
+    fun `cleartext-http capability sets usesCleartextTraffic on the application`() {
+        val xml = render(capabilities = listOf(LightToolPolicy.CLEARTEXT_HTTP))
+        assertTrue(xml.contains("""android:usesCleartextTraffic="true""""))
+    }
+
+    @Test
+    fun `without cleartext-http the manifest never mentions cleartext`() {
+        val xml = render(capabilities = emptyList())
+        assertFalse(xml.contains("usesCleartextTraffic"))
+    }
+
+    @Test
     fun `empty permissions produces no uses-permission elements`() {
         val xml = render(permissions = emptyList())
         assertFalse(xml.contains("uses-permission"))
@@ -178,5 +190,28 @@ class ManifestGeneratorTest {
         assertFalse(xml.contains("android.permission.FOREGROUND_SERVICE"))
         assertFalse(xml.contains("foregroundServiceType"))
         assertFalse(xml.contains("CAPABILITY_DETACHED_AUDIO"))
+    }
+
+    @Test
+    fun `tool-manager-provider capability declares the LightFileProvider marker`() {
+        val xml = render(capabilities = listOf("tool-manager-provider"))
+
+        assertTrue(
+            xml.contains("""android:name="com.thelightphone.toolmanager.LightFileProvider""""),
+            "expected LightFileProvider; got:\n$xml"
+        )
+        assertTrue(xml.contains("""android:authorities="${'$'}{applicationId}.lightfileprovider""""))
+        assertTrue(
+            xml.contains("""android:name="com.thelightphone.toolmanager.TOOL_MANAGER_PROVIDER""""),
+            "expected the tool manager provider marker; got:\n$xml"
+        )
+    }
+
+    @Test
+    fun `without the capability no tool manager provider is emitted`() {
+        val xml = render()
+
+        assertFalse(xml.contains("<provider"))
+        assertFalse(xml.contains("TOOL_MANAGER_PROVIDER"))
     }
 }

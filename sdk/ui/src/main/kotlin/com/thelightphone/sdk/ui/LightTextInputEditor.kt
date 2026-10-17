@@ -39,6 +39,7 @@ import com.thelightphone.lp3Keyboard.ui.viewmodel.EnQwertyLp3KeyboardViewModel
 import com.thelightphone.lp3Keyboard.ui.viewmodel.Lp3KeyboardViewModel
 import com.thelightphone.lp3Keyboard.ui.viewmodel.Lp3RepeatableKeyboardCallback
 import com.thelightphone.lp3Keyboard.ui.viewmodel.defaultEmojis
+import com.thelightphone.sdk.ContextLightVibrator
 import com.thelightphone.sdk.ui.keyboard.LightEmbeddedLp3Keyboard
 import com.thelightphone.sdk.ui.keyboard.TextInputKeyboardCallback
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -75,7 +76,7 @@ fun LightTextInputEditor(
     val hapticsEnabled = LocalHapticsEnabled.current
     val context = LocalContext.current
     val currentOnHaptic by rememberUpdatedState {
-        if (hapticsEnabled) LightHapticFeedback.click(context)
+        if (hapticsEnabled) ContextLightVibrator(context).click()
     }
     val keyboardCallback = remember(state, singleLine) {
         TextInputKeyboardCallback(
@@ -313,7 +314,7 @@ private fun PreviewLightTextInputEditorDark() {
 fun defaultKeyboardOptions() = KeyboardOptions(
     defaultEmojis,
     displayReturn = true,
-    displayVoice = true,
+    displayVoice = false, // dictation not available in LP3 keyboard as of 0.0.19
     enableKeyAnimation = true,
     swipeEnabled = false
 )
