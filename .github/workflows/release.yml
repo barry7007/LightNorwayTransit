@@ -38,7 +38,7 @@ jobs:
 
       - name: Name the APK after the tag
         run: |
-          cp tool/build/outputs/apk/release/Sanntid-release.apk \
+          cp tool/build/outputs/apk/release/tool-release.apk \
              "Sanntid-${GITHUB_REF_NAME}.apk"
 
       # Signed with the SDK's shared dev key, which lives in the repo — sideloadable, but not
