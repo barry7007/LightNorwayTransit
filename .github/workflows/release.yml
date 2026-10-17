@@ -1,7 +1,7 @@
 name: Release
 
 # Tag a commit v1.0.0 and push the tag to cut a release. The version people see comes from
-# examples/Sanntid/lighttool.toml, not from the tag — keep the two in step.
+# tool/lighttool.toml, not from the tag — keep the two in step.
 on:
   push:
     tags: ['v*']
@@ -34,11 +34,11 @@ jobs:
       # No credentials needed: upstream moved the keyboard library from GitHub Packages to
       # JitPack (PR #144), which is what the GH_CI_USER/GH_CI_TOKEN secrets existed for.
       - name: Build release APK
-        run: ./gradlew :examples:Sanntid:assembleRelease --stacktrace
+        run: ./gradlew :tool:assembleRelease --stacktrace
 
       - name: Name the APK after the tag
         run: |
-          cp examples/Sanntid/build/outputs/apk/release/Sanntid-release.apk \
+          cp tool/build/outputs/apk/release/Sanntid-release.apk \
              "Sanntid-${GITHUB_REF_NAME}.apk"
 
       # Signed with the SDK's shared dev key, which lives in the repo — sideloadable, but not

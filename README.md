@@ -34,7 +34,7 @@ If it doesn't appear in the LightOS menu, restart the phone.
 LightOS does not currently grant location to SDK tools, so grant it once from outside the app:
 
 ```sh
-adb shell pm grant com.thelightphone.sanntid android.permission.ACCESS_FINE_LOCATION
+adb shell pm grant com.sanntid.lp3 android.permission.ACCESS_FINE_LOCATION
 ```
 
 This survives app updates. Everything else works without it.
@@ -53,13 +53,13 @@ search are the fallback instead.
 Needs JDK 17. See [the SDK README](docs/LIGHT_SDK_README.md).
 
 ```sh
-./gradlew :examples:Sanntid:assembleDebug
+./gradlew :tool:assembleDebug
 ```
 
 ## Forking
 
 **Change `CLIENT_NAME`** in
-[`SanntidApi.kt`](examples/Sanntid/src/main/kotlin/com/thelightphone/sanntid/SanntidApi.kt). Entur
+[`SanntidApi.kt`](tool/src/main/kotlin/com/thelightphone/sanntid/SanntidApi.kt). Entur
 requires an `ET-Client-Name` of the form `<company>-<application>` and blocks unidentified
 consumers. The default is shared by every unmodified build, so all that traffic is rate-limited as
 one consumer.
@@ -73,7 +73,7 @@ welcome; there's deliberately no configurable API setting.
 A fork of [`lightphone/light-sdk`](https://github.com/lightphone/light-sdk), which is how SDK tools
 are distributed. Two additions:
 
-- `examples/Sanntid/`: the app
+- `tool/`: the app
 - `sdk/client/.../LightLocation.kt`: lets tools read a position at all, since `getSystemService()`
   is blocked in tool modules. A standalone file extending `SealedLightContext`, mirroring upstream's
   `LightDb.kt`, so it adds no merge conflicts.
