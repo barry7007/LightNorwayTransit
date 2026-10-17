@@ -293,25 +293,32 @@ private fun StopPickerContent(
                 )
             }
             // Not interactive — it exists so a bug report can say which build it came from.
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 0.6f.gridUnitsAsDp()),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                LightText(
-                    text = strings.version,
-                    variant = LightTextVariant.Heading,
-                    modifier = Modifier.weight(1f),
-                )
-                LightText(
-                    text = BuildConfig.VERSION_NAME,
-                    variant = LightTextVariant.Detail,
-                    lighten = true,
-                    modifier = Modifier.padding(horizontal = 0.75f.gridUnitsAsDp()),
-                )
-            }
+            InfoRow(label = strings.version, value = BuildConfig.VERSION_NAME)
+            // Source credit asked for by Entur's open-data licence (NLOD).
+            InfoRow(label = strings.data, value = "Entur (NLOD)")
         }
+    }
+}
+
+@Composable
+private fun InfoRow(label: String, value: String) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 0.6f.gridUnitsAsDp()),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        LightText(
+            text = label,
+            variant = LightTextVariant.Heading,
+            modifier = Modifier.weight(1f),
+        )
+        LightText(
+            text = value,
+            variant = LightTextVariant.Detail,
+            lighten = true,
+            modifier = Modifier.padding(horizontal = 0.75f.gridUnitsAsDp()),
+        )
     }
 }
 
