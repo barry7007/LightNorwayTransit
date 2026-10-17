@@ -19,8 +19,6 @@ import com.sanntid.lp3.BuildConfig
 import com.thelightphone.sdk.InitialScreen
 import com.thelightphone.sdk.LightScreen
 import com.thelightphone.sdk.SealedLightActivity
-import com.thelightphone.sdk.currentCoordinates
-import com.thelightphone.sdk.hasLocationPermission
 import com.thelightphone.sdk.rememberKeyboardOptions
 import com.thelightphone.sdk.ui.LightBarButton
 import com.thelightphone.sdk.ui.LightBottomBar
@@ -39,7 +37,6 @@ import com.thelightphone.sdk.ui.LightTopBar
 import com.thelightphone.sdk.ui.LightTopBarCenter
 import com.thelightphone.sdk.ui.gridUnitsAsDp
 import com.thelightphone.sdk.ui.lightClickable
-import com.thelightphone.sdk.ui.rememberKeyboardLayoutToggleItem
 
 @InitialScreen
 class SanntidHomeScreen(sealedActivity: SealedLightActivity) :
@@ -57,6 +54,7 @@ class SanntidHomeScreen(sealedActivity: SealedLightActivity) :
         val keyboardOptionsFlow = rememberKeyboardOptions()
         val session = state.editorSession
         val strings = state.strings
+        val nearMe = rememberNearMeLocation(lightContext)
 
         LightTheme(colors = themeColors) {
             Box(
@@ -77,7 +75,7 @@ class SanntidHomeScreen(sealedActivity: SealedLightActivity) :
                             onSubmit = viewModel::submitSearch,
                             onBack = viewModel::cancelSearch,
                             submitIcon = LightIcons.SEARCH,
-                            leftBottomBarItem = rememberKeyboardLayoutToggleItem(),
+                            leftBottomBarItem = rememberKeyboardToggleItem(),
                             showBackButton = state.canCancelSearch,
                             modifier = Modifier.fillMaxSize(),
                         )
@@ -113,14 +111,12 @@ class SanntidHomeScreen(sealedActivity: SealedLightActivity) :
                             onRemoveFavourite = viewModel::removeFavourite,
                             onSearch = viewModel::searchNewStop,
                             onBack = viewModel::closeStopPicker,
-                            // No permission *request* here: LightOS 566's SDK server refuses to
-                            // grant location at all, so launching its prompt only flashes an
-                            // activity that immediately exits. We read the real OS grant instead
-                            // and say plainly what to do when it's missing.
                             onNearMe = {
                                 viewModel.loadNearby(
-                                    hasPermission = { lightContext.hasLocationPermission },
-                                    coordinates = { lightContext.currentCoordinates() },
+                                    hasPermission = {
+                                        nearMe.hasPermission().also { if (!it) nearMe.requestPermission() }
+                                    },
+                                    coordinates = nearMe::coordinates,
                                 )
                             },
                             language = state.language,

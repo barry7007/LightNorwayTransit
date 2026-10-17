@@ -4,7 +4,6 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.lifecycle.viewModelScope
-import com.thelightphone.sdk.LightCoordinates
 import com.thelightphone.sdk.LightViewModel
 import com.thelightphone.sdk.SimpleLightScreen
 import kotlinx.coroutines.CoroutineExceptionHandler
@@ -270,7 +269,7 @@ class SanntidViewModel(
      */
     fun loadNearby(
         hasPermission: suspend () -> Boolean,
-        coordinates: suspend () -> LightCoordinates?,
+        coordinates: suspend () -> SanntidCoordinates?,
     ) {
         viewModelScope.launch(Dispatchers.IO + apiExceptionHandler) {
             updateState { it.copy(mode = SanntidScreenMode.Loading, errorModal = null) }

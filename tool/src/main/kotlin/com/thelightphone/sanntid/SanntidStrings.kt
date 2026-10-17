@@ -71,7 +71,7 @@ interface SanntidStrings {
     fun distance(distanceKm: Double): String
 }
 
-private const val PACKAGE_NAME = "com.thelightphone.sanntid"
+private const val PACKAGE_NAME = "com.sanntid.lp3"
 
 internal object NbStrings : SanntidStrings {
     override val appTitle = "Sanntid"
@@ -94,8 +94,12 @@ internal object NbStrings : SanntidStrings {
     override val networkError =
         "Sanntid trenger nettforbindelse. Koble til wi-fi eller sett inn et data-SIM for å hente avganger."
     override val locationPermission =
-        "Sanntid mangler tilgang til posisjon. LightOS gir ikke denne tilgangen til app-er selv; " +
-            "den må gis via adb:\npm grant $PACKAGE_NAME android.permission.ACCESS_FINE_LOCATION"
+        if (LOCATION_NEEDS_ADB) {
+            "Sanntid mangler tilgang til posisjon. LightOS gir ikke denne tilgangen til app-er selv; " +
+                "den må gis via adb:\npm grant $PACKAGE_NAME android.permission.ACCESS_FINE_LOCATION"
+        } else {
+            "Sanntid trenger tilgang til posisjon. Gi tilgang, og trykk Nær meg igjen."
+        }
     override val locationUnavailable =
         "Fant ikke posisjonen din. Sjekk at posisjon er slått på, og prøv igjen."
     override val noStopsNearby = "Fant ingen holdeplasser nær deg."
@@ -145,8 +149,12 @@ internal object EnStrings : SanntidStrings {
     override val networkError =
         "Sanntid needs a network connection. Join wi-fi or insert a data SIM to fetch departures."
     override val locationPermission =
-        "Sanntid has no location permission. LightOS does not grant this to apps itself; " +
-            "it has to be given over adb:\npm grant $PACKAGE_NAME android.permission.ACCESS_FINE_LOCATION"
+        if (LOCATION_NEEDS_ADB) {
+            "Sanntid has no location permission. LightOS does not grant this to apps itself; " +
+                "it has to be given over adb:\npm grant $PACKAGE_NAME android.permission.ACCESS_FINE_LOCATION"
+        } else {
+            "Sanntid needs location access. Allow it, then tap Near me again."
+        }
     override val locationUnavailable =
         "Couldn't get your position. Check that location is switched on, and try again."
     override val noStopsNearby = "No stops found near you."
