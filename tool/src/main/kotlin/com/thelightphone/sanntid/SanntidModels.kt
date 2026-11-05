@@ -52,6 +52,8 @@ enum class TransportMode(val enturCode: String) {
 data class Departure(
     val mode: TransportMode,
     val lineCode: String,
+    /** Entur line id ("RUT:Line:5"); used to fetch more of one line. Blank if unknown. */
+    val lineId: String = "",
     val destination: String,
     /** Departure clock in Europe/Oslo, HH:MM. */
     val clock: String,
@@ -72,7 +74,7 @@ data class ModeGroup(
 )
 
 /** Max departures shown per mode — the screen scrolls, so we can show more than SMS. */
-const val MAX_DEPARTURES_PER_MODE = 8
+const val MAX_DEPARTURES_PER_MODE = 12
 
 /**
  * Buckets departures into [ModeGroup]s in the fixed [TransportMode] order, each
@@ -85,3 +87,8 @@ fun List<Departure>.groupedByMode(maxPerMode: Int = MAX_DEPARTURES_PER_MODE): Li
             .take(maxPerMode)
         if (deps.isEmpty()) null else ModeGroup(mode, deps)
     }
+
+/** Same line, same direction: what the line page shows. */
+fun Departure.sameLineAs(other: Departure): Boolean =
+    mode == other.mode && lineCode == other.lineCode && destination == other.destination &&
+        (lineId.isBlank() || other.lineId.isBlank() || lineId == other.lineId)

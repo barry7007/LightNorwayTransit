@@ -99,6 +99,17 @@ class SanntidHomeScreen(sealedActivity: SealedLightActivity) :
                             onOpenPicker = viewModel::openStopPicker,
                             onToggleFavourite = viewModel::toggleFavourite,
                             onRefresh = viewModel::refresh,
+                            onSelectLine = viewModel::openLine,
+                            strings = strings,
+                        )
+                    }
+
+                    is SanntidScreenMode.LineDepartures -> {
+                        LineDeparturesContent(
+                            line = mode.line,
+                            departures = mode.departures,
+                            onBack = viewModel::closeLine,
+                            onRefresh = viewModel::refresh,
                             strings = strings,
                         )
                     }
@@ -434,6 +445,7 @@ private fun DeparturesContent(
     onOpenPicker: () -> Unit,
     onToggleFavourite: () -> Unit,
     onRefresh: () -> Unit,
+    onSelectLine: (Departure) -> Unit,
     strings: SanntidStrings,
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
@@ -457,7 +469,7 @@ private fun DeparturesContent(
                     .padding(start = 1f.gridUnitsAsDp()),
             ) {
                 groups.forEach { group ->
-                    ModeSection(group, strings)
+                    ModeSection(group, onSelectLine, strings)
                 }
             }
         }
@@ -485,23 +497,24 @@ private fun DeparturesContent(
 }
 
 @Composable
-private fun ModeSection(group: ModeGroup, strings: SanntidStrings) {
+private fun ModeSection(group: ModeGroup, onSelectLine: (Departure) -> Unit, strings: SanntidStrings) {
     Column(modifier = Modifier.padding(bottom = 1f.gridUnitsAsDp())) {
         LightText(
             text = strings.modeLabel(group.mode),
             variant = LightTextVariant.Heading,
         )
         group.departures.forEach { departure ->
-            DepartureRow(departure, strings)
+            DepartureRow(departure, strings, onClick = { onSelectLine(departure) })
         }
     }
 }
 
 @Composable
-private fun DepartureRow(departure: Departure, strings: SanntidStrings) {
+private fun DepartureRow(departure: Departure, strings: SanntidStrings, onClick: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
+            .lightClickable(onClick = onClick)
             .padding(vertical = 0.25f.gridUnitsAsDp()),
     ) {
         LightText(
@@ -512,6 +525,62 @@ private fun DepartureRow(departure: Departure, strings: SanntidStrings) {
             text = formatDepartureDetail(departure, strings),
             variant = LightTextVariant.Detail,
             lighten = true,
+        )
+    }
+}
+
+/** Every departure of one line in one direction, hours ahead. */
+@Composable
+private fun LineDeparturesContent(
+    line: Departure,
+    departures: List<Departure>,
+    onBack: () -> Unit,
+    onRefresh: () -> Unit,
+    strings: SanntidStrings,
+) {
+    Column(modifier = Modifier.fillMaxSize()) {
+        LightTopBar(
+            leftButton = LightBarButton.LightIcon(
+                icon = LightIcons.BACK,
+                onClick = onBack,
+                contentDescription = strings.backToDepartures,
+            ),
+            center = LightTopBarCenter.Text(formatLineDestination(line)),
+            modifier = Modifier.padding(bottom = 0.25f.gridUnitsAsDp()),
+        )
+
+        if (departures.isEmpty()) {
+            LightText(
+                text = strings.noDepartures,
+                variant = LightTextVariant.Copy,
+                modifier = Modifier.padding(horizontal = 1f.gridUnitsAsDp()),
+            )
+            Box(modifier = Modifier.weight(1f).fillMaxWidth())
+        } else {
+            LightScrollView(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .padding(start = 1f.gridUnitsAsDp()),
+            ) {
+                departures.forEach { departure ->
+                    LightText(
+                        text = formatDepartureDetail(departure, strings),
+                        variant = LightTextVariant.Copy,
+                        modifier = Modifier.padding(vertical = 0.4f.gridUnitsAsDp()),
+                    )
+                }
+            }
+        }
+
+        LightBottomBar(
+            items = listOf(
+                LightBarButton.LightIcon(
+                    icon = LightIcons.REFRESH,
+                    onClick = onRefresh,
+                    contentDescription = strings.refresh,
+                ),
+            ),
         )
     }
 }

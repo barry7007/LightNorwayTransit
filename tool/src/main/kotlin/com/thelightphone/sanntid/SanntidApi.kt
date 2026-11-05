@@ -115,6 +115,7 @@ internal data class ServiceJourney(val line: Line? = null)
 
 @Serializable
 internal data class Line(
+    val id: String? = null,
     val publicCode: String? = null,
     val transportMode: String? = null,
 )
@@ -217,11 +218,29 @@ internal class SanntidApi {
      * Fetches departures for a stop place. Queries broadly (150 departures over a
      * 7200s window) and does all filtering/sorting client-side, per spec.
      */
-    suspend fun fetchDepartures(stopPlaceId: String): Result<List<Departure>> = runCatching {
+    suspend fun fetchDepartures(stopPlaceId: String): Result<List<Departure>> =
+        queryDepartures(departuresQuery(stopPlaceId))
+
+    /**
+     * One line at one stop, further ahead than the stop-wide query reaches (2026-11-05:
+     * at Nationaltheatret the 8-per-mode list ran out ~8 min ahead, too short to walk
+     * there). Direction is filtered by the caller, on the destination text.
+     */
+    suspend fun fetchLineDepartures(stopPlaceId: String, lineId: String): Result<List<Departure>> =
+        queryDepartures(
+            departuresQuery(
+                stopPlaceId,
+                timeRangeSeconds = LINE_TIME_RANGE_SECONDS,
+                count = LINE_DEPARTURE_COUNT,
+                lineId = lineId,
+            ),
+        )
+
+    private suspend fun queryDepartures(query: String): Result<List<Departure>> = runCatching {
         val response = client.post(JOURNEY_PLANNER_URL) {
             header("ET-Client-Name", CLIENT_NAME)
             contentType(ContentType.Application.Json)
-            setBody(GraphQlRequest(departuresQuery(stopPlaceId)))
+            setBody(GraphQlRequest(query))
         }
         if (!response.status.isSuccess()) {
             throw IllegalStateException("Journey Planner HTTP ${response.status.value}: ${response.bodyAsText().take(500)}")
@@ -255,6 +274,7 @@ private fun EstimatedCall.toDeparture(now: Instant): Departure? {
     return Departure(
         mode = mode,
         lineCode = serviceJourney?.line?.publicCode?.trim().orEmpty(),
+        lineId = serviceJourney?.line?.id.orEmpty(),
         destination = destinationDisplay?.frontText?.trim().orEmpty(),
         clock = expected.atZone(OSLO_ZONE).format(CLOCK_FORMAT),
         minutesToDeparture = minutes,
@@ -268,10 +288,20 @@ private fun EstimatedCall.toDeparture(now: Instant): Departure? {
 private fun parseInstant(iso: String): Instant? =
     runCatching { OffsetDateTime.parse(iso).toInstant() }.getOrNull()
 
-private fun departuresQuery(stopPlaceId: String): String = """
+private const val LINE_TIME_RANGE_SECONDS = 6 * 3600
+private const val LINE_DEPARTURE_COUNT = 60   // shared by every direction of the line
+
+private fun departuresQuery(
+    stopPlaceId: String,
+    timeRangeSeconds: Int = 7200,
+    count: Int = 150,
+    lineId: String? = null,
+): String {
+    val lineFilter = lineId?.let { ", whiteListed: { lines: [\"$it\"] }" }.orEmpty()
+    return """
 {
   stopPlace(id: "$stopPlaceId") {
-    estimatedCalls(timeRange: 7200, numberOfDepartures: 150) {
+    estimatedCalls(timeRange: $timeRangeSeconds, numberOfDepartures: $count$lineFilter) {
       aimedDepartureTime
       expectedDepartureTime
       realtime
@@ -280,9 +310,10 @@ private fun departuresQuery(stopPlaceId: String): String = """
       quay { id name }
       destinationDisplay { frontText }
       serviceJourney {
-        line { publicCode transportMode }
+        line { id publicCode transportMode }
       }
     }
   }
 }
 """.trimIndent()
+}

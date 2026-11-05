@@ -1,8 +1,8 @@
 [tool]
 id = "com.sanntid.lp3"
 label = "Sanntid"
-versionCode = 2
-versionName = "1.0.1"
+versionCode = 3
+versionName = "1.1.0"
 orientation = "portrait"
 
 # ACCESS_FINE_LOCATION drives "Nær meg" (nearby stops). LightOS does not currently grant it

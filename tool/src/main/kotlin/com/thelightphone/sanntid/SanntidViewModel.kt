@@ -31,6 +31,13 @@ sealed class SanntidScreenMode {
         val groups: List<ModeGroup>,
     ) : SanntidScreenMode()
 
+    /** One line in one direction, tapped from [Departures]. [line] is the tapped row. */
+    data class LineDepartures(
+        val stop: StopPlace,
+        val line: Departure,
+        val departures: List<Departure>,
+    ) : SanntidScreenMode()
+
     /** The "BYTT STED" chooser: favourites first, then the two ways of finding a new stop. */
     data object StopPicker : SanntidScreenMode()
 
@@ -60,6 +67,8 @@ class SanntidViewModel(
     val uiState: StateFlow<SanntidUiState> = _uiState.asStateFlow()
 
     private var currentStop: StopPlace? = null
+    /** Uncapped result of the last stop-wide fetch: the line page opens from it instantly. */
+    private var lastDepartures: List<Departure> = emptyList()
     private var skipRefreshOnNextScreenShow = true
 
     private val apiExceptionHandler = CoroutineExceptionHandler { _, error ->
@@ -157,6 +166,7 @@ class SanntidViewModel(
         }
         api.fetchDepartures(stop.id).fold(
             onSuccess = { departures ->
+                lastDepartures = departures
                 updateState {
                     it.copy(
                         mode = SanntidScreenMode.Departures(stop, departures.groupedByMode()),
@@ -319,12 +329,61 @@ class SanntidViewModel(
         }
     }
 
-    /** Manual re-fetch of the current stop's departures, in place (no loading flash). */
+    /** Manual re-fetch of whatever is shown (stop or line), in place (no loading flash). */
     fun refresh() {
+        val mode = _uiState.value.mode
+        if (mode is SanntidScreenMode.LineDepartures) {
+            viewModelScope.launch(Dispatchers.IO + apiExceptionHandler) { refreshLine(mode.stop, mode.line) }
+            return
+        }
         val stop = currentStop ?: return
         viewModelScope.launch(Dispatchers.IO + apiExceptionHandler) {
             refreshDepartures(stop, showLoadingScreen = false)
         }
+    }
+
+    // ── One line ────────────────────────────────────────────────────────────────
+
+    /**
+     * Opens [line] (a tapped row) at the current stop: shown at once from the stop-wide
+     * list, then replaced by a line-only fetch that reaches hours further ahead.
+     */
+    fun openLine(line: Departure) {
+        val stop = currentStop ?: return
+        _uiState.update {
+            it.copy(
+                mode = SanntidScreenMode.LineDepartures(stop, line, lastDepartures.filter { d -> d.sameLineAs(line) }),
+                errorModal = null,
+            )
+        }
+        viewModelScope.launch(Dispatchers.IO + apiExceptionHandler) { refreshLine(stop, line) }
+    }
+
+    private suspend fun refreshLine(stop: StopPlace, line: Departure) {
+        if (line.lineId.isBlank()) return       // nothing to ask for; the instant list stands
+        api.fetchLineDepartures(stop.id, line.lineId).fold(
+            onSuccess = { departures ->
+                updateState {
+                    val mode = it.mode
+                    // the user may have left the page while this was loading
+                    if (mode is SanntidScreenMode.LineDepartures && mode.line == line) {
+                        it.copy(mode = mode.copy(departures = departures.filter { d -> d.sameLineAs(line) }))
+                    } else {
+                        it
+                    }
+                }
+            },
+            onFailure = { showApiFailure(it) },
+        )
+    }
+
+    /** Back from a line: the stop's list as it was, then refreshed in place. */
+    fun closeLine() {
+        val stop = currentStop ?: return
+        _uiState.update {
+            it.copy(mode = SanntidScreenMode.Departures(stop, lastDepartures.groupedByMode()), errorModal = null)
+        }
+        refresh()
     }
 
     /** Cycles to the next available language and persists it. */
